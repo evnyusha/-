@@ -13,6 +13,7 @@ group by 1
 ),
 
 --шаг 2
+
 all_dates as (
 select distinct date_trunc('day',classes.class_start_datetime) as dt
     from skyeng_db.classes
@@ -20,6 +21,7 @@ where class_start_datetime < '2017-01-01'
 ),
 
 --шаг 3
+
 all_dates_by_user as (
 select user_id, dt
     from all_dates
@@ -28,6 +30,7 @@ join first_payments
 ), 
 
 --шаг 4
+
 payments_by_dates as (
       select user_id
       , date_trunc('day', transaction_datetime) as payment_date
@@ -38,6 +41,7 @@ group by 1,2
 ),
 
 --шаг 5
+
 payments_by_dates_cumsum as (
       select all_dates_by_user.user_id, transaction_balance_change, dt, SUM(COALESCE(transaction_balance_change,0)) OVER (PARTITION BY all_dates_by_user.user_id ORDER BY all_dates_by_user.dt) transaction_balance_change_cs
 from all_dates_by_user
@@ -46,6 +50,7 @@ from all_dates_by_user
       ),
 
 --шаг 6
+
 classes_by_dates as (
  select user_id
      , date_trunc('day',class_start_datetime) class_date
@@ -56,6 +61,7 @@ group by user_id, class_date
 ),
 
 -- шаг 7
+
 classes_by_dates_dates_cumsum as(
       select all_dates_by_user.user_id, all_dates_by_user.dt, classes,
 SUM(COALESCE(classes,0)) OVER (PARTITION BY all_dates_by_user.user_id ORDER BY all_dates_by_user.dt) classes_cs
@@ -65,6 +71,7 @@ on classes_by_dates.class_date = all_dates_by_user.dt and all_dates_by_user.user
 ),
 
 --шаш 8
+
 balances as (
      select c.user_id, c.dt, transaction_balance_change, transaction_balance_change_cs, classes, classes_cs, (classes_cs + transaction_balance_change_cs) balance
      from classes_by_dates_dates_cumsum c
